@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/footer :: head('サブスクの登録・編集')}"></head>
+<body>
+<div th:replace="~{fragments/header :: header(active='edit')}"></div>
+
+<main class="container py-4" style="max-width: 720px;">
+  <h1 class="h4 mb-3" th:text="${#strings.endsWith(formAction, '/subscriptions')} ? 'サブスクを追加' : 'サブスクを編集'">サブスクを追加</h1>
+
+  <form class="card shadow-sm" method="post" th:action="@{${formAction}}" th:object="${form}" novalidate>
+    <div class="card-body row g-3">
+
+      <div class="col-12">
+        <label class="form-label" for="name">サービス名 <span class="text-danger">*</span></label>
+        <input id="name" type="text" class="form-control" th:field="*{name}" th:errorclass="is-invalid" placeholder="例: Netflix" autofocus>
+        <div class="invalid-feedback" th:errors="*{name}">エラー</div>
+      </div>
+
+      <div class="col-6">
+        <label class="form-label" for="price">料金 <span class="text-danger">*</span></label>
+        <input id="price" type="number" step="any" min="0" inputmode="decimal" class="form-control" th:field="*{price}" th:errorclass="is-invalid">
+        <div class="invalid-feedback" th:errors="*{price}">エラー</div>
+      </div>
+      <div class="col-6">
+        <label class="form-label" for="currency">通貨</label>
+        <select id="currency" class="form-select" th:field="*{currency}">
+          <option th:each="c : ${currencies}" th:value="${c.name()}" th:text="${c.name()}">JPY</option>
+        </select>
+      </div>
+
+      <div class="col-6">
+        <label class="form-label" for="billingCycle">課金サイクル</label>
+        <select id="billingCycle" class="form-select" th:field="*{billingCycle}">
+          <option th:each="b : ${billingCycles}" th:value="${b.name()}" th:text="${b.label}">月額</option>
+        </select>
+      </div>
+      <div class="col-6">
+        <label class="form-label" for="category">カテゴリ</label>
+        <select id="category" class="form-select" th:field="*{category}">
+          <option th:each="c : ${categories}" th:value="${c.name()}" th:text="${c.label}">動画</option>
+        </select>
+      </div>
+
+      <div class="col-6">
+        <label class="form-label" for="startDate">契約開始日</label>
+        <input id="startDate" type="date" class="form-control" th:field="*{startDate}" th:errorclass="is-invalid">
+        <div class="invalid-feedback" th:errors="*{startDate}">エラー</div>
+      </div>
+      <div class="col-6">
+        <label class="form-label" for="nextRenewalDate">次回更新日</label>
+        <input id="nextRenewalDate" type="date" class="form-control" th:field="*{nextRenewalDate}" th:errorclass="is-invalid">
+        <div class="invalid-feedback" th:errors="*{nextRenewalDate}">エラー</div>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label" for="paymentStatus">支払いステータス</label>
+        <select id="paymentStatus" class="form-select" th:field="*{paymentStatus}">
+          <option th:each="p : ${paymentStatuses}" th:value="${p.name()}" th:text="${p.label}">支払い済み</option>
+        </select>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label" for="url">サイトURL</label>
+        <input id="url" type="url" class="form-control" th:field="*{url}" th:errorclass="is-invalid" placeholder="https://">
+        <div class="invalid-feedback" th:errors="*{url}">エラー</div>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label" for="memo">メモ</label>
+        <textarea id="memo" rows="3" class="form-control" th:field="*{memo}" th:errorclass="is-invalid"></textarea>
+        <div class="invalid-feedback" th:errors="*{memo}">エラー</div>
+      </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-end gap-2">
+      <a class="btn btn-outline-secondary" th:href="@{/subscriptions}">キャンセル</a>
+      <button class="btn btn-primary" type="submit">保存する</button>
+    </div>
+  </form>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

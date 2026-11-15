@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/footer :: head('サブスク管理')}"></head>
+<body>
+<div th:replace="~{fragments/header :: header(active='list')}"></div>
+
+<main class="container py-4">
+
+  <div class="alert alert-success alert-dismissible fade show" th:if="${message}">
+    <span th:text="${message}">保存しました</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="閉じる"></button>
+  </div>
+
+  <!-- 指標カード -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="card stat-card h-100 shadow-sm"><div class="card-body">
+        <div class="text-primary mb-2"><i class="bi bi-wallet2 fs-4"></i></div>
+        <div class="small text-muted">月間支出合計</div>
+        <div class="stat-value">¥<span th:text="${#numbers.formatInteger(summary.monthlyTotal, 1, 'COMMA')}">0</span></div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card stat-card h-100 shadow-sm"><div class="card-body">
+        <div class="text-success mb-2"><i class="bi bi-calendar-range fs-4"></i></div>
+        <div class="small text-muted">年間支出予測</div>
+        <div class="stat-value">¥<span th:text="${#numbers.formatInteger(summary.yearlyForecast, 1, 'COMMA')}">0</span></div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card stat-card h-100 shadow-sm"><div class="card-body">
+        <div class="text-info mb-2"><i class="bi bi-collection fs-4"></i></div>
+        <div class="small text-muted">契約中サービス</div>
+        <div class="stat-value"><span th:text="${summary.activeCount}">0</span> 件</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card stat-card h-100 shadow-sm"><div class="card-body">
+        <div class="text-warning mb-2"><i class="bi bi-bell fs-4"></i></div>
+        <div class="small text-muted"><span th:text="${reminderDays}">7</span>日以内に更新</div>
+        <div class="stat-value"><span th:text="${summary.upcomingCount}">0</span> 件</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- カテゴリ別内訳 -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm"><div class="card-body">
+        <h2 class="h6 mb-3">カテゴリ別の月間支出</h2>
+        <p class="text-muted small mb-0" th:if="${#lists.isEmpty(summary.byCategory)}">データがありません</p>
+        <th:block th:unless="${#lists.isEmpty(summary.byCategory)}">
+          <div class="chart-box mb-3"><canvas id="categoryChart"></canvas></div>
+          <ul class="list-unstyled small mb-0">
+            <li class="d-flex justify-content-between py-1" th:each="c : ${summary.byCategory}">
+              <span th:text="${c.category.label}">動画</span>
+              <span class="text-muted"><span th:text="${c.percent}">0</span>%
+                ・¥<span th:text="${#numbers.formatInteger(c.amount, 1, 'COMMA')}">0</span></span>
+            </li>
+          </ul>
+        </th:block>
+      </div></div>
+    </div>
+
+    <!-- 一覧 -->
+    <div class="col-lg-8">
+      <form class="row g-2 mb-3" method="get" th:action="@{/subscriptions}">
+        <div class="col-12 col-md">
+          <input type="search" name="q" class="form-control" placeholder="サービス名で検索" th:value="${q}">
+        </div>
+        <div class="col-6 col-md-auto">
+          <select name="category" class="form-select" onchange="this.form.submit()" aria-label="カテゴリで絞り込み">
+            <option value="">すべてのカテゴリ</option>
+            <option th:each="c : ${categories}" th:value="${c.name()}" th:text="${c.label}"
+                    th:selected="${c == selectedCategory}">動画</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-auto">
+          <select name="sort" class="form-select" onchange="this.form.submit()" aria-label="並び替え">
+            <option th:each="k : ${sortKeys}" th:value="${k.name()}" th:text="${k.label}"
+                    th:selected="${k == selectedSort}">更新日が近い順</option>
+          </select>
+        </div>
+      </form>
+
+      <p class="text-center text-muted border rounded p-5 bg-white" th:if="${#lists.isEmpty(subscriptions)}">
+        該当するサブスクリプションがありません
+      </p>
+
+      <!-- PC: テーブル -->
+      <div class="card shadow-sm d-none d-md-block" th:unless="${#lists.isEmpty(subscriptions)}">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small">
+            <tr><th>サービス</th><th>料金</th><th>月換算</th><th>次回更新日</th><th>状況</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr th:each="s : ${subscriptions}"
+                th:classappend="${s.counted and s.daysUntilRenewal(today) <= reminderDays} ? 'renew-soon'">
+              <td>
+                <div class="fw-semibold" th:text="${s.name}">Netflix</div>
+                <div class="small text-muted" th:text="${s.category.label}">動画</div>
+                <div class="small text-muted sub-memo" th:if="${!#strings.isEmpty(s.memo)}" th:text="${s.memo}">メモ</div>
+              </td>
+              <td class="text-nowrap">
+                <span th:text="${s.priceLabel}">¥1,490</span>
+                <span class="small text-muted">/<span th:text="${s.billingCycle.label}">月額</span></span>
+              </td>
+              <td class="text-nowrap">¥<span th:text="${#numbers.formatInteger(s.monthlyJpy, 1, 'COMMA')}">0</span></td>
+              <td class="text-nowrap">
+                <th:block th:if="${s.counted}">
+                  <div th:text="${#temporals.format(s.effectiveRenewalDate(today), 'yyyy-MM-dd')}">2026-01-01</div>
+                  <div class="small" th:with="d=${s.daysUntilRenewal(today)}"
+                       th:classappend="${d <= reminderDays} ? 'renew-soon-text' : 'text-muted'"
+                       th:text="${d == 0} ? '本日更新' : 'あと' + ${d} + '日'">あと3日</div>
+                </th:block>
+                <span class="text-muted" th:unless="${s.counted}">—</span>
+              </td>
+              <td><span class="badge" th:classappend="'text-bg-' + ${s.paymentStatus.color}" th:text="${s.paymentStatus.label}">支払い済み</span></td>
+              <td class="text-end text-nowrap">
+                <a class="btn btn-sm btn-outline-secondary" th:if="${!#strings.isEmpty(s.url)}" th:href="${s.url}"
+                   target="_blank" rel="noopener noreferrer" aria-label="サイトを開く"><i class="bi bi-box-arrow-up-right"></i></a>
+                <a class="btn btn-sm btn-outline-secondary" th:href="@{/subscriptions/{id}/edit(id=${s.id})}" aria-label="編集"><i class="bi bi-pencil"></i></a>
+                <form class="d-inline" method="post" th:action="@{/subscriptions/{id}/delete(id=${s.id})}"
+                      th:attr="data-name=${s.name}" onsubmit="return confirm('「' + this.dataset.name + '」を削除しますか?')">
+                  <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="削除"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- モバイル: カード -->
+      <div class="d-md-none">
+        <div class="card shadow-sm mb-3" th:each="s : ${subscriptions}"
+             th:classappend="${s.counted and s.daysUntilRenewal(today) <= reminderDays} ? 'renew-soon'">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-semibold" th:text="${s.name}">Netflix</div>
+                <div class="small text-muted" th:text="${s.category.label}">動画</div>
+              </div>
+              <span class="badge" th:classappend="'text-bg-' + ${s.paymentStatus.color}" th:text="${s.paymentStatus.label}">支払い済み</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-end mt-3">
+              <div>
+                <div class="fw-semibold"><span th:text="${s.priceLabel}">¥1,490</span>
+                  <span class="small fw-normal text-muted">/<span th:text="${s.billingCycle.label}">月額</span></span></div>
+                <div class="small text-muted">月換算 ¥<span th:text="${#numbers.formatInteger(s.monthlyJpy, 1, 'COMMA')}">0</span></div>
+              </div>
+              <div class="text-end small" th:if="${s.counted}" th:with="d=${s.daysUntilRenewal(today)}">
+                <div th:text="${#temporals.format(s.effectiveRenewalDate(today), 'yyyy-MM-dd')}">2026-01-01</div>
+                <div th:classappend="${d <= reminderDays} ? 'renew-soon-text' : 'text-muted'"
+                     th:text="${d == 0} ? '本日更新' : 'あと' + ${d} + '日'">あと3日</div>
+              </div>
+            </div>
+            <div class="text-end border-top mt-3 pt-2">
+              <a class="btn btn-sm btn-outline-secondary" th:if="${!#strings.isEmpty(s.url)}" th:href="${s.url}"
+                 target="_blank" rel="noopener noreferrer" aria-label="サイトを開く"><i class="bi bi-box-arrow-up-right"></i></a>
+              <a class="btn btn-sm btn-outline-secondary" th:href="@{/subscriptions/{id}/edit(id=${s.id})}" aria-label="編集"><i class="bi bi-pencil"></i></a>
+              <form class="d-inline" method="post" th:action="@{/subscriptions/{id}/delete(id=${s.id})}"
+                    th:attr="data-name=${s.name}" onsubmit="return confirm('「' + this.dataset.name + '」を削除しますか?')">
+                <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="削除"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script th:inline="javascript">
+  (function () {
+    var canvas = document.getElementById('categoryChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: /*[[${chartLabels}]]*/ [],
+        datasets: [{
+          data: /*[[${chartValues}]]*/ [],
+          backgroundColor: ['#6366f1', '#10b981', '#0ea5e9', '#f59e0b', '#f43f5e', '#8b5cf6', '#14b8a6', '#94a3b8']
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } , tooltip: { callbacks: { label: function (c) { return ' ' + c.label + ': ¥' + c.parsed.toLocaleString(); } } } }
+      }
+    });
+  })();
+</script>
+</body>
+</html>

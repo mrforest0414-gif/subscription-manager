@@ -1,0 +1,7 @@
+body { background: #f8fafc; }
+.stat-card .stat-value { font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (min-width: 576px) { .stat-card .stat-value { font-size: 1.9rem; } }
+.renew-soon { background-color: #fff8e1 !important; }
+.renew-soon-text { color: #b45309; font-weight: 600; }
+.sub-memo { max-width: 22rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chart-box { position: relative; height: 220px; }

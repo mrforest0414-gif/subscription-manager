@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<header th:fragment="header(active)">
+  <nav class="navbar navbar-expand bg-white border-bottom sticky-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-primary" th:href="@{/subscriptions}">
+        <i class="bi bi-wallet2 me-1"></i>サブスク管理
+      </a>
+      <a class="btn btn-primary btn-sm ms-auto" th:href="@{/subscriptions/new}">
+        <i class="bi bi-plus-lg"></i> 追加
+      </a>
+    </div>
+  </nav>
+</header>
+</body>
+</html>
